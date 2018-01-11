@@ -1,0 +1,9 @@
+---
+# This playbook deploys the whole application stack in this site.
+
+- name: configure and deploy nexus
+  hosts: nexus
+  remote_user: root
+
+  roles:
+  - nexus

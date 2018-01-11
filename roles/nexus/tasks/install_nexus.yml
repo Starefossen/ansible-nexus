@@ -1,0 +1,74 @@
+---
+# These tasks install nexus.
+
+- name: "nexus: set NEXUS_HOME for root"
+  lineinfile:
+    dest: /root/.bashrc
+    line: 'export NEXUS_HOME=/usr/local/nexus'
+    insertafter: 'EOF'
+    state: present
+
+- name: "nexus: set NEXUS_HOME for all"
+  lineinfile:
+    dest: /etc/environment
+    line: 'NEXUS_HOME=/usr/local/nexus'
+    insertafter: 'EOF'
+    state: present
+
+- name: "nexus: increase file handle limit"
+  lineinfile:
+    dest: /etc/security/limits.conf
+    line: 'nexus - nofile 65536'
+    insertafter: 'EOF'
+    state: present
+
+- name: "nexus: source .bashrc for root"
+  shell: source /root/.bashrc
+
+- name: "nexus: install Java 1.8"
+  yum:
+    name: java-1.8.0-openjdk
+    state: latest
+
+- name: "nexus: check if already installed"
+  stat: path=/usr/local/nexus-{{ nexus.version_full }}
+  register: nexus_check
+
+- name: "nexus: download Nexus OSS"
+  get_url:
+    url: "{{ nexus.download_url }}/{{ nexus.version_major}}/nexus-{{ nexus.version_full }}-unix.tar.gz"
+    dest: /usr/local
+  when: nexus_check.stat.exists == False
+
+- name: "nexus: unarchive Nexus OSS"
+  unarchive:
+    src: "/usr/local/nexus-{{ nexus.version_full }}-unix.tar.gz"
+    dest: /usr/local
+    copy: no
+  when: nexus_check.stat.exists == False
+
+- name: "neux: remove source archive"
+  file: path=/usr/local/nexus-{{ nexus.version_full }}-unix.tar.gz state=absent
+  when: nexus_check.stat.exists == False
+
+- name: "nexus: symlink installtion"
+  file:
+    path: /usr/local/nexus
+    src: /usr/local/nexus-{{ nexus.version_full }}
+    state: link
+    force: yes
+  notify: restart nexus
+  when: nexus_check.stat.exists == False
+
+- name: "nexus: copy nexus.rc"
+  template: src=nexus.rc dest=/usr/local/nexus/bin/nexus.rc
+  notify: restart nexus
+
+- name: "nexus: symlink init.d"
+  file:
+    path: /etc/init.d/nexus
+    src: /usr/local/nexus/bin/nexus
+    state: link
+  notify: restart nexus
+
+# sonartype-work dir chown

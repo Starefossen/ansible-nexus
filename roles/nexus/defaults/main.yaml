@@ -1,0 +1,6 @@
+---
+nexus:
+  user: nexus
+  download_url: https://sonatype-download.global.ssl.fastly.net/nexus
+  version_major: 3
+  version_full: 3.6.0-02
